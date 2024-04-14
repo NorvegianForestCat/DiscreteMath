@@ -1,7 +1,9 @@
 # <-- Python3.8.5 -->
 
 
+from itertools import product
 from typing import List, Tuple
+import copy
 
 
 class GraphHelper:
@@ -108,3 +110,50 @@ class GraphHelper:
         return __fillingAdjacencyMatrix(
             matrixBase=__initAdjacencyMatrix(dimension=dimension), incMatrix=incMatrix
         )
+
+    @staticmethod
+    def powerMatrix(matrix, degree):
+
+        __dMatrix = [[0 for i in range(len(matrix))] for _ in range(len(matrix))]
+        dMatrix = copy.deepcopy(matrix)
+
+        for _ in range(degree - 1):
+            for i, j in product(range(len(matrix)), repeat=2):
+                dElem = 0
+                for k in range(len(matrix)):
+                    dElem += dMatrix[i][k] * matrix[k][j]
+                __dMatrix[i][j] = dElem
+            dMatrix = copy.deepcopy(__dMatrix)
+
+        dMatrix = __dMatrix
+        return dMatrix
+
+    @staticmethod
+    def AdjacencyMatrixToList(matrix):
+        adjacencyMatrix = dict()
+        for i, node in enumerate(matrix):
+            adjacents = []
+            for j, isConnect in enumerate(node):
+                if isConnect:
+                    adjacents.append(j)
+            adjacencyMatrix[i] = adjacents
+        return adjacencyMatrix
+
+    @staticmethod
+    def createGraphSkeletonMatrix(adjMatrix):
+        skeletonMatrix = [
+            [0 for i in range(len(adjMatrix))] for _ in range(len(adjMatrix))
+        ]
+        for i, j in product(range(len(adjMatrix)), repeat=2):
+            if i == j:
+                skeletonMatrix[i][j] = 0
+            elif adjMatrix[i][j]:
+                skeletonMatrix[i][j] = 1
+
+        return skeletonMatrix
+
+    @staticmethod
+    def createMetricMatrix(adjMatrix):
+        __skeletonMatrix = GraphHelper.createGraphSkeletonMatrix(adjMatrix=adjMatrix)
+        
+        
