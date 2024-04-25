@@ -49,9 +49,30 @@ Example: 3 2 -> 3-dim multiple graph
         print("Incidence matrix")
         for i in graph.IncidenceMatrix:
             print(i)
+        print()
+
+        print("Deviation Matrix")
+        for i in graph.DeviationMatrix:
+            print(i)
+        print()
+
+        print("Radius, diameter")
+        for i in (graph.Radius, graph.Diameter):
+            print(i, end=", ")
+        print(end="\n\n")
+
+        print("Centrals")
+        for i in graph.CentralVertexes:
+            print(i, end=" ")
+        print(end="\n\n")
+
+        print("Peripherals")
+        for i in graph.PeripheralVertexes:
+            print(i, end=" ")
+        print(end="\n\n")
 
         GraphVisualizer.Visualize(graph.AdjacencyMatrix)
-        
+
         del graph
 
         # Clear a console

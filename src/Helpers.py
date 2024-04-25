@@ -3,7 +3,8 @@
 
 from itertools import product
 from typing import List, Tuple
-import copy
+from copy import deepcopy
+import sympy
 
 
 class GraphHelper:
@@ -41,7 +42,7 @@ class GraphHelper:
         def __fillingIncidentMatrix(
             matrixBase: List[List[int]], adjMatrix: List[List[int]]
         ) -> List[List[int]]:
-            # Convert an adjMAtrix to incident
+            # Convert an adjMatrix to incidence
             dCounter = 0
 
             for i in range(len(adjMatrix)):
@@ -112,21 +113,30 @@ class GraphHelper:
         )
 
     @staticmethod
+    def MultiplicationMatrix(matrixOne, matrixTwo):
+        rowOne = len(matrixOne)
+        columnOne = len(matrixOne[0])
+        rowTwo = len(matrixTwo)
+        columnTwo = len(matrixTwo[0])
+        if columnOne == rowTwo:
+            result = [[0 for _ in range(columnTwo)] for _ in range(rowOne)]
+            for row in range(rowOne):
+                for column in range(columnTwo):
+                    for j in range(columnOne):
+                        result[row][column] += matrixOne[row][j] * matrixTwo[j][column]
+            return result
+        else:
+            return None
+
+    @staticmethod
     def powerMatrix(matrix, degree):
-
-        __dMatrix = [[0 for i in range(len(matrix))] for _ in range(len(matrix))]
-        dMatrix = copy.deepcopy(matrix)
-
-        for _ in range(degree - 1):
-            for i, j in product(range(len(matrix)), repeat=2):
-                dElem = 0
-                for k in range(len(matrix)):
-                    dElem += dMatrix[i][k] * matrix[k][j]
-                __dMatrix[i][j] = dElem
-            dMatrix = copy.deepcopy(__dMatrix)
-
-        dMatrix = __dMatrix
-        return dMatrix
+        if len(matrix) != len(matrix[0]):
+            return None
+        else:
+            result = deepcopy(matrix)
+            for i in range(degree - 1):
+                result = GraphHelper.MultiplicationMatrix(result, matrix)
+            return result
 
     @staticmethod
     def AdjacencyMatrixToList(matrix):
@@ -153,7 +163,247 @@ class GraphHelper:
         return skeletonMatrix
 
     @staticmethod
-    def createMetricMatrix(adjMatrix):
-        __skeletonMatrix = GraphHelper.createGraphSkeletonMatrix(adjMatrix=adjMatrix)
+    def createDeviationMatrix(adjMatrix):
+        deviationMatrix = [
+            [0 for _ in range(len(adjMatrix))] for i in range(len(adjMatrix))
+        ]
+        n = len(adjMatrix)
+        k = 1
+        S = deepcopy(adjMatrix)
+        for i in range(n):
+            S[i][i] = 1
+        S2 = deepcopy(S)
+
+        deviationMatrixOld = deepcopy(deviationMatrix)
+
+        while True:
+            isDeviationMatrixFull = True
+            for i in range(n):
+                for j in range(i + 1, n):
+                    if S2[i][j] != 0 and deviationMatrix[i][j] == 0:
+                        deviationMatrix[i][j] = k
+                        deviationMatrix[j][i] = k
+            k += 1
+
+            for i in range(n):
+                for j in range(i + 1, n):
+                    if deviationMatrix[i][j] == 0:
+                        isDeviationMatrixFull = False
+                        break
+
+            isSameMatrix = False
+            if deviationMatrix == deviationMatrixOld:
+                isSameMatrix = True
+
+            if isDeviationMatrixFull == True or isSameMatrix == 1:
+                break
+
+            S2 = GraphHelper.powerMatrix(S, k)
+            deviationMatrixOld = deepcopy(deviationMatrix)
+
+        for i in range(n):
+            for j in range(i + 1, n):
+                if deviationMatrix[i][j] == 0:
+                    deviationMatrix[i][j] == -1
+                    deviationMatrix[i][j] == -1
+
+        return deviationMatrix
+
+    @staticmethod
+    def getDeviationSpecifications(deviationMatrix):
+        radius: int
+        diameter: int
+        peripherals: List[int]
+        centrals: List[int]
+        weights: List[int]
+
+        weights = []
+        centrals = []
+        peripherals = []
+
+        for row in deviationMatrix:
+            weights.append(max(row))
+
+        radius = min(weights)
+        diameter = max(weights)
+
+        for row in range(len(deviationMatrix)):
+            if diameter <= max(deviationMatrix[row]):
+                centrals.append(row)
+            elif diameter >= max(deviationMatrix[row]):
+                peripherals.append(row)
+
+        return radius, diameter, peripherals, centrals
+
+    """    @staticmethod
+    def AdjacencySkeletonMatrix(adjMatrix):
+        skeleton = [[0 for _ in range(len(adjMatrix))] for i in range(len(adjMatrix))]
+
+        for i in range(len(adjMatrix)):
+            for j in range(len(adjMatrix)):
+                if adjMatrix[i][j] > 0:
+                    skeleton[i][j] = 1
+
+        return skeleton"""
+
+    @staticmethod
+    def CountEdges(
+        adjMatrix: List[List[int]], graphType: int
+    ) -> int:  # Counting of edges
+        dSum: int = 0
+
+        if graphType != 3:
+            for matrString in adjMatrix:
+                dSum += sum(matrString)
+
+            dSum //= 2
+        else:
+            dMainDiagSum: int = 0
+
+            for i in range(len(adjMatrix)):
+                for j in range(len(adjMatrix)):
+                    if i == j:
+                        dMainDiagSum += adjMatrix[i][j]
+                        continue
+                    else:
+                        dSum += adjMatrix[i][j]
+
+            dSum //= 2
+            dSum += dMainDiagSum
+
+        return dSum
+
+    @staticmethod
+    def createAddForAdjacency(adjMatrix):
+        addAdjMatrix = [
+            [0 for i in range(len(adjMatrix))] for _ in range(len(adjMatrix))
+        ]
+
+        for i in range(len(adjMatrix)):
+            for j in range(len(adjMatrix)):
+                if i != j:
+                    addAdjMatrix[i][j] = 1 if adjMatrix[i][j] == 0 else 0
+        return addAdjMatrix
+
+    @staticmethod
+    def MaguWaissmann(adjMatrix):
+        skeletonAdjacencyMatrix = GraphHelper.createGraphSkeletonMatrix(
+            adjMatrix=adjMatrix
+        )
+        # addMatrixSkeleton = GraphHelper.createAddForAdjacency(skeletonAdjacencyMatrix)
+
+        countEdges = GraphHelper.CountEdges(
+            adjMatrix=skeletonAdjacencyMatrix, graphType=0
+        )
+
+        skeletonIncidenceMatrix = GraphHelper.AdjacencyToIncidenceMatrix(
+            adjMatrix=skeletonAdjacencyMatrix, dimension=(len(adjMatrix), countEdges)
+        )
+
+        X = []
+
+        for num in range(len(skeletonIncidenceMatrix)):
+            X.append(sympy.Symbol(f"x{num}"))
+
+        for i in range(len(skeletonIncidenceMatrix)):
+            for j in range(len(skeletonIncidenceMatrix[0])):
+                skeletonIncidenceMatrix[i][j] = skeletonIncidenceMatrix[i][j] * X[i]
+
+        polynom = []
+
+        for j in range(len(skeletonIncidenceMatrix[0])):
+            s = 0
+            for i in range(len(skeletonIncidenceMatrix)):
+                if skeletonIncidenceMatrix[i][j] != 0:
+                    s += skeletonIncidenceMatrix[i][j]
+            polynom.append(s)
+
+        mPolynom = 1
+
+        for expr in polynom:
+            mPolynom *= expr
+
+        cliques = []
+        mPolynom = sympy.expand(mPolynom)
+
+        for i in mPolynom.args:
+            dClique = []
+            for j in i.args:
+                if sympy.degree(j) != 0:
+                    vertex = sympy.powdenest(j ** (1 / sympy.degree(j)), force=True)
+                    dClique.append(vertex)
+            cliques.append(dClique)
+
+        emptySubgraphs = []
+        for i in cliques:
+            subgraph = []
+            for vertex in X:
+                if vertex not in i:
+                    subgraph.append(vertex)
+            if subgraph not in emptySubgraphs:
+                emptySubgraphs.append(subgraph)
+
+        return emptySubgraphs
+
+    @staticmethod
+    def findMaxEmptySubgraphs(adjMatrix):
+        subgraphs = GraphHelper.MaguWaissmann(adjMatrix=adjMatrix)
+        maxLen = 0
+        maxSg = []
+
+        for sg in subgraphs:
+            if len(sg) >= maxLen:
+                maxLen = len(sg)
         
+
+        return maxSg
+
+    @staticmethod
+    def findMaxCompleteSubgraphs(adjMatrix):
+        addAdjMatrix = GraphHelper.createAddForAdjacency(adjMatrix=adjMatrix)
+        subgraphs = GraphHelper.MaguWaissmann(adjMatrix=addAdjMatrix)
+        maxLen = 0
+        maxSg = []
+
+        for sg in subgraphs:
+            if len(sg) >= maxLen:
+                maxLen = len(sg)
+                maxSg = sg
+
+        return maxSg
+
+    @staticmethod
+    def getChromaticNumber(adjMatrix):
+        subgraphs = GraphHelper.MaguWaissmann(adjMatrix=adjMatrix)
+        colors = 0
+        visited = []
+
+        for sg in subgraphs:
+            dSg = deepcopy(sg)
+            for vertex in dSg:
+                if vertex in visited:
+                    sg.remove(vertex)
+                else:
+                    visited.append(vertex)
+            if sg:
+                colors += 1
+        return colors
+    
+    @staticmethod
+    def colorizeGraph(adjMatrix):
+        dim = len(adjMatrix)
+        colors = [0 for _ in range(dim)]
+        for i in range(dim):
+            unavailableColors = []
+            for j in range(dim):
+                if(adjMatrix[i][j] >= 1 and colors[j] != 0):
+                    unavailableColors.append(colors[j])
+            color = 1
+            
+            while color in unavailableColors:
+                color+=1
+            colors[i] = color
+            
+        colorizedVertexes = {vertex:colors[vertex] for vertex in range(dim)}
         
+        return colorizedVertexes

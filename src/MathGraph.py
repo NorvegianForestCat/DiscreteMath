@@ -20,9 +20,15 @@ class MathGraph:
 
     __nodeCount: int
     __edgeNumber: int
+    __radius: int
+    __diameter: int
     __adjacencyMatrix: List[List[int]]
     __incidenceMatrix: List[List[int]]
+    __deviationMatrix: List[List[int]]
     __graphTypes: List[int]
+
+    __peripheralVertexes: List[int]
+    __centralVertexes: List[int]
 
     __maxEdgeCount: int = 5
 
@@ -43,6 +49,15 @@ class MathGraph:
             dimension=(self.__nodeCount, self.__edgeNumber),
             adjMatrix=self.AdjacencyMatrix,
         )
+        self.__deviationMatrix = GraphHelper.createDeviationMatrix(
+            adjMatrix=self.AdjacencyMatrix
+        )
+        (
+            self.__radius,
+            self.__diameter,
+            self.__peripheralVertexes,
+            self.__centralVertexes,
+        ) = GraphHelper.getDeviationSpecifications(self.DeviationMatrix)
 
     def __format_simpleGraph(
         self, i: int, j: int
@@ -177,3 +192,48 @@ class MathGraph:
             int: nodes (vertex) count
         """
         return self.__nodeCount
+
+    @property
+    def DeviationMatrix(self) -> List[List[int]]:
+        """_summary_
+
+        Returns:
+            List[List[int]]: _description_
+        """
+        return self.__deviationMatrix
+
+    @property
+    def Radius(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.__radius
+
+    @property
+    def Diameter(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.__diameter
+
+    @property
+    def PeripheralVertexes(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.__peripheralVertexes
+
+    @property
+    def CentralVertexes(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.__centralVertexes
