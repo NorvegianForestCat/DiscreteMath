@@ -26,9 +26,12 @@ class MathGraph:
     __incidenceMatrix: List[List[int]]
     __deviationMatrix: List[List[int]]
     __graphTypes: List[int]
-
     __peripheralVertexes: List[int]
     __centralVertexes: List[int]
+    __maxCompleteSubgraphs: List[List[int]]
+    __maxEmptySubgraphs: List[List[int]]
+    __colorizing: List[int]
+    __chromaticNum: int
 
     __maxEdgeCount: int = 5
 
@@ -59,6 +62,21 @@ class MathGraph:
             self.__centralVertexes,
         ) = GraphHelper.getDeviationSpecifications(self.DeviationMatrix)
 
+        if graphType != 4:
+            self.__maxEmptySubgraphs = GraphHelper.findMaxEmptySubgraphs(
+                adjMatrix=self.AdjacencyMatrix
+            )
+            self.__maxCompleteSubgraphs = GraphHelper.findMaxCompleteSubgraphs(
+                adjMatrix=self.AdjacencyMatrix
+            )
+        else:
+            self.__maxEmptySubgraphs = None
+            self.__maxCompleteSubgraphs = None
+        self.__colorizing = GraphHelper.colorizeGraph(adjMatrix=self.AdjacencyMatrix)
+        self.__chromaticNum = GraphHelper.getChromaticNumber(
+            adjMatrix=self.AdjacencyMatrix
+        )
+
     def __format_simpleGraph(
         self, i: int, j: int
     ) -> int:  # Simple graph adjMatrix form
@@ -84,12 +102,19 @@ class MathGraph:
     ) -> int:  # Graph with loops adjMatrix form
         return random.randint(0, self.__maxEdgeCount)
 
+    def __format_orientedSimpleWeightGraph(self, i, j):
+        if i != j:
+            return random.randint(0, 5)
+        else:
+            return 0
+
     # Graph types
     __graphTypes = [
         __format_simpleGraph,
         __format_fullGraph,
         __format_multigraph,
         __format_withLoops,
+        __format_orientedSimpleWeightGraph,
     ]
 
     def __countEdges(
@@ -97,8 +122,14 @@ class MathGraph:
     ) -> int:  # Counting of edges
         dSum: int = 0
 
-        if graphType != 3:
+        if graphType != 3 and graphType < 4:
             for matrString in adjMatrix:
+                dSum += sum(matrString)
+
+            dSum //= 2
+        elif graphType == 4:
+            dmatrix = GraphHelper.createGraphSkeletonMatrix(adjMatrix=adjMatrix)
+            for matrString in dmatrix:
                 dSum += sum(matrString)
 
             dSum //= 2
@@ -115,6 +146,7 @@ class MathGraph:
 
             dSum //= 2
             dSum += dMainDiagSum
+    
 
         return dSum
 
@@ -138,13 +170,18 @@ class MathGraph:
         def __fillingAdjacencyMatrix(
             matrix: List[List[int]], mode: int
         ) -> List[List[int]]:  # Filling zeros-matrix
-            for i in range(len(matrix)):
-                for j in range(len(matrix[i]) - i):
-                    matrix[i][j + i] = self.__graphTypes[mode](self, i=i, j=j + i)
+            if mode != 4:
+                for i in range(len(matrix)):
+                    for j in range(len(matrix[i]) - i):
+                        matrix[i][j + i] = self.__graphTypes[mode](self, i=i, j=j + i)
 
-            for i in range(1, len(matrix)):
-                for j in range(i):
-                    matrix[i][j] = matrix[j][i]
+                for i in range(1, len(matrix)):
+                    for j in range(i):
+                        matrix[i][j] = matrix[j][i]
+            else:
+                for i in range(len(matrix)):
+                    for j in range(len(matrix)):
+                        matrix[i][j] = self.__graphTypes[mode](self, i, j)
 
             return matrix
 
@@ -237,3 +274,39 @@ class MathGraph:
             _type_: _description_
         """
         return self.__centralVertexes
+
+    @property
+    def MaxCompleteSubgraphs(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.__maxCompleteSubgraphs
+
+    @property
+    def MaxEmptySubgraphs(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.__maxEmptySubgraphs
+
+    @property
+    def ColorizedVertexes(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.__colorizing
+
+    @property
+    def ChromaticNumber(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.__chromaticNum

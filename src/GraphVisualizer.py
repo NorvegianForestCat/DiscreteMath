@@ -17,7 +17,9 @@ class GraphVisualizer:
     """
 
     @staticmethod
-    def Visualize(adjMatrix: List[List[int]]) -> None:
+    def Visualize(
+        adjMatrix: List[List[int]], colorizedVertexes, chromaticNumber, graphType
+    ) -> None:
 
         def __getEdgeLabels(
             adjMatrix: List[List[int]],
@@ -36,10 +38,20 @@ class GraphVisualizer:
             return edge_labels
 
         # Graph show
-        graph: object = nx.Graph(np.array(adjMatrix))
+        if graphType < 4:
+            graph: object = nx.Graph(np.array(adjMatrix))
+        else:
+            graph: object = nx.DiGraph(np.array(adjMatrix), directed = True)
         edgeLabels = __getEdgeLabels(adjMatrix=adjMatrix)
+        colors = [
+            f"#{i*(pow(10, 6 - len(str(i))))+i*100}"
+            for i in range(chromaticNumber + 1)
+        ]
+        dColor = [colors[i] for i in colorizedVertexes.values()]
 
-        nx.draw(G=graph, pos=nx.circular_layout(graph), with_labels=True)
+        nx.draw(
+            G=graph, node_color=dColor, pos=nx.circular_layout(graph), with_labels=True
+        )
         nx.draw_networkx_edge_labels(
             G=graph, pos=nx.circular_layout(graph), edge_labels=edgeLabels
         )

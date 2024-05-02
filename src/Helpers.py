@@ -5,6 +5,7 @@ from itertools import product
 from typing import List, Tuple
 from copy import deepcopy
 import sympy
+import math
 
 
 class GraphHelper:
@@ -48,13 +49,16 @@ class GraphHelper:
             for i in range(len(adjMatrix)):
                 for j in range(i, len(adjMatrix[i])):
                     for _ in range(adjMatrix[i][j]):
-                        if i == j:
-                            matrixBase[i][dCounter] = 1
-                        else:
-                            matrixBase[i][dCounter] = 1
-                            matrixBase[j][dCounter] = 1
+                        try:
+                            if i == j:
+                                matrixBase[i][dCounter] = 1
+                            else:
+                                matrixBase[i][dCounter] = 1
+                                matrixBase[j][dCounter] = 1
 
-                        dCounter += 1
+                            dCounter += 1
+                        except:
+                            pass
 
             return matrixBase
 
@@ -235,17 +239,6 @@ class GraphHelper:
 
         return radius, diameter, peripherals, centrals
 
-    """    @staticmethod
-    def AdjacencySkeletonMatrix(adjMatrix):
-        skeleton = [[0 for _ in range(len(adjMatrix))] for i in range(len(adjMatrix))]
-
-        for i in range(len(adjMatrix)):
-            for j in range(len(adjMatrix)):
-                if adjMatrix[i][j] > 0:
-                    skeleton[i][j] = 1
-
-        return skeleton"""
-
     @staticmethod
     def CountEdges(
         adjMatrix: List[List[int]], graphType: int
@@ -354,7 +347,19 @@ class GraphHelper:
         for sg in subgraphs:
             if len(sg) >= maxLen:
                 maxLen = len(sg)
-        
+        for i in range(len(subgraphs) - 1):
+            flag = False
+
+            for j in range(len(subgraphs)):
+
+                if (
+                    (set(subgraphs[i]).issubset(set(subgraphs[j])))
+                    and subgraphs[j]
+                    and (subgraphs[i] != subgraphs[j])
+                ):
+                    flag = True
+            if not flag:
+                maxSg.append(subgraphs[i])
 
         return maxSg
 
@@ -368,42 +373,104 @@ class GraphHelper:
         for sg in subgraphs:
             if len(sg) >= maxLen:
                 maxLen = len(sg)
-                maxSg = sg
+
+        for i in range(len(subgraphs) - 1):
+            flag = False
+
+            for j in range(len(subgraphs)):
+
+                if (
+                    (set(subgraphs[i]).issubset(set(subgraphs[j])))
+                    and subgraphs[j]
+                    and (subgraphs[i] != subgraphs[j])
+                ):
+                    flag = True
+            if not flag:
+                maxSg.append(subgraphs[i])
 
         return maxSg
 
     @staticmethod
-    def getChromaticNumber(adjMatrix):
-        subgraphs = GraphHelper.MaguWaissmann(adjMatrix=adjMatrix)
-        colors = 0
-        visited = []
-
-        for sg in subgraphs:
-            dSg = deepcopy(sg)
-            for vertex in dSg:
-                if vertex in visited:
-                    sg.remove(vertex)
-                else:
-                    visited.append(vertex)
-            if sg:
-                colors += 1
-        return colors
-    
-    @staticmethod
     def colorizeGraph(adjMatrix):
+
         dim = len(adjMatrix)
         colors = [0 for _ in range(dim)]
+
         for i in range(dim):
-            unavailableColors = []
+            nearbyColors = []
             for j in range(dim):
-                if(adjMatrix[i][j] >= 1 and colors[j] != 0):
-                    unavailableColors.append(colors[j])
+                if adjMatrix[i][j] >= 1 and colors[j] != 0:
+                    nearbyColors.append(colors[j])
+
             color = 1
-            
-            while color in unavailableColors:
-                color+=1
+
+            while color in nearbyColors:
+                color += 1
             colors[i] = color
-            
-        colorizedVertexes = {vertex:colors[vertex] for vertex in range(dim)}
-        
+
+        colorizedVertexes = {vertex: colors[vertex] for vertex in range(dim)}
+
         return colorizedVertexes
+
+    @staticmethod
+    def getChromaticNumber(adjMatrix):
+        return max(GraphHelper.colorizeGraph(adjMatrix=adjMatrix).values())
+
+    @staticmethod
+    def DijkstraAlgorhitm(adjMatrix, start, end):        
+        
+        def toNullMAinDiagonal(matrix):
+            for i in range(len(matrix)):
+                for j in range(len(matrix)):
+                    if i == j:
+                        matrix[i][j] = 0
+            return matrix
+
+        def findVertexWithMinWeigth(vertexMetric, alreadySeen):
+            minI = -1
+            maxWeight = max(
+                vertexMetric
+            ) 
+            for i, t in enumerate(vertexMetric):
+                if t < maxWeight and i not in alreadySeen:
+                    maxWeight = t
+                    minI = i
+
+            return minI
+
+        def getLinkedVertex(vertex, matrix):
+            linkedVertexes = []
+            for i, weight in enumerate(matrix[vertex]):
+                if weight > 0:
+                    linkedVertexes.append(i)
+            return linkedVertexes
+
+        startVertex = start
+        matrixLen = len(adjMatrix)
+        vertexMetrix = [math.inf] * matrixLen
+        alreadySeen = {startVertex}
+        vertexMetrix[startVertex] = 0
+        linkingVertexes = [0] * matrixLen
+        path = [end]
+        resEnd = end
+        adjMatrix = toNullMAinDiagonal(adjMatrix)
+        
+        while startVertex != -1:
+            for j in getLinkedVertex(startVertex, adjMatrix):
+                if j not in alreadySeen:
+                    weight = vertexMetrix[startVertex] + adjMatrix[startVertex][j]
+                    if weight < vertexMetrix[j]:
+                        vertexMetrix[j] = weight
+                        linkingVertexes[j] = startVertex
+
+            startVertex = findVertexWithMinWeigth(vertexMetrix, alreadySeen)
+            if startVertex >= 0:
+                alreadySeen.add(startVertex)
+
+        while end != start:
+            end = linkingVertexes[path[-1]]
+            path.append(end)
+
+        path.reverse()
+
+        return start, resEnd, vertexMetrix[resEnd], path
